@@ -1,0 +1,100 @@
+version: '3.9'
+services:
+
+  tunnel_server:
+    container_name: tunnel_server
+    build:
+      context: ./../tunnel_server
+      dockerfile: .Dockerfile
+    working_dir: /app
+    volumes:
+      - ./../tunnel_server/app/:/app/
+    #        command: >
+    #            bash -c 'CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /app/bin/tunnel_server /app/main.go
+    #            && chmod 770 /app/tunnel_server
+    #            && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_server'
+
+    command: >
+      bash -c 'go build -o /app/bin/tunnel_server && /app/bin/tunnel_server'
+#      bash -c '/go/bin/dlv debug /app/main.go --headless --listen=:40000 --api-version=2 --accept-multiclient --output=/app/bin/tunnel_server
+#      && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_server'
+
+#     bash -c 'go build -o /app/bin/tunnel_server && go run /app/bin/tunnel_server'
+
+    ports:
+      - "8080:8080"
+    networks:
+      - tunnel_net
+
+  tunnel_client:
+    container_name: tunnel_client
+    build:
+      context: ./../tunnel_client
+      dockerfile: .Dockerfile
+    depends_on:
+      - tunnel_server
+    volumes:
+      - ./../tunnel_client/app/:/app/
+    #        command: >
+    #            bash -c 'CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /app/bin/tunnel_client /app/main.go
+    #            && chmod 770 /app/tunnel_client
+    #            && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_client'
+
+
+    command: >
+      bash -c 'go build -o /app/bin/tunnel_client && /app/bin/tunnel_client'
+#      bash -c '/go/bin/dlv debug /app/main.go --headless --listen=:40000 --api-version=2 --accept-multiclient --output=/app/bin/tunnel_client
+#      && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_client'
+
+#      bash -c 'go build -o /app/bin/tunnel_client && go run /app/bin/tunnel_client'
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    networks:
+      - tunnel_net
+
+  tunnel_web:
+    container_name: tunnel_web
+    build:
+      context: ./../tunnel_web
+      dockerfile: .Dockerfile
+    depends_on:
+      - tunnel_server
+    volumes:
+      - ./../tunnel_web/app/:/app/
+    #        command: >
+    #            bash -c 'CGO_ENABLED=0 go build -gcflags="all=-N -l" -o /app/bin/tunnel_client /app/main.go
+    #            && chmod 770 /app/tunnel_client
+    #            && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_client'
+
+
+    command: >
+      bash -c 'go build -o /app/bin/tunnel_web && /app/bin/tunnel_web'
+    #      bash -c '/go/bin/dlv debug /app/main.go --headless --listen=:40000 --api-version=2 --accept-multiclient --output=/app/bin/tunnel_client
+    #      && /go/bin/dlv --listen=:40000 --headless=true --api-version=2 --accept-multiclient exec /app/bin/tunnel_client'
+
+    #      bash -c 'go build -o /app/bin/tunnel_client && go run /app/bin/tunnel_client'
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      tunnel_net:
+          aliases:
+            - tunnel-web.local
+#  postgresql_tunnel:
+#    container_name: postgresql_tunnel
+#    image: postgres:14.1-alpine
+#    ports:
+#      - '5432:5432'
+#    environment:
+#      POSTGRES_USER: goland
+#      POSTGRES_PASSWORD: goland
+#      POSTGRES_DB: goland
+#    networks:
+#      - tunnel_net
+
+networks:
+  tunnel_net:
+    driver: bridge
+
+
